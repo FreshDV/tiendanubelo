@@ -34,10 +34,10 @@ export function FileUpload() {
         description: 'Los archivos se han procesado correctamente',
       });
     },
-    onError: () => {
+    onError: (error: any) => {
       toast({
         title: 'Error',
-        description: 'Error al subir los archivos',
+        description: error.message || 'Error al subir los archivos',
         variant: 'destructive',
       });
     },
@@ -60,8 +60,21 @@ export function FileUpload() {
     },
   });
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    const txtFiles = acceptedFiles.filter(file => file.name.endsWith('.txt'));
+  const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: any[]) => {
+    // Manejar archivos rechazados
+    if (rejectedFiles.length > 0) {
+      rejectedFiles.forEach(file => {
+        toast({
+          title: 'Archivo no válido',
+          description: 'Solo se permiten archivos .txt de hasta 10MB',
+          variant: 'destructive',
+        });
+      });
+      return;
+    }
+
+    const txtFiles = acceptedFiles.filter(file => file.name.toLowerCase().endsWith('.txt'));
+    
     if (txtFiles.length === 0) {
       toast({
         title: 'Error',
@@ -80,8 +93,49 @@ export function FileUpload() {
       return;
     }
 
-    setUploading(true);
-    uploadMutation.mutate(txtFiles);
+    // Verificar el contenido de los archivos
+    const fileReadPromises = txtFiles.map(file => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const content = reader.result as string;
+          // Verificar que el archivo tenga al menos una línea con formato válido
+          const hasValidLine = content.split('\n').some(line => {
+            const trimmedLine = line.trim();
+            return trimmedLine.includes('@') && trimmedLine.includes(':');
+          });
+          resolve({ file, isValid: hasValidLine });
+        };
+        reader.onerror = () => reject(new Error(`Error al leer ${file.name}`));
+        reader.readAsText(file);
+      });
+    });
+
+    Promise.all(fileReadPromises)
+      .then((results: any[]) => {
+        const validFiles = results.filter(r => r.isValid).map(r => r.file);
+        const invalidFiles = results.filter(r => !r.isValid).map(r => r.file);
+
+        if (invalidFiles.length > 0) {
+          toast({
+            title: 'Archivos no válidos',
+            description: 'Algunos archivos no contienen cuentas en formato válido (email:password)',
+            variant: 'destructive',
+          });
+        }
+
+        if (validFiles.length > 0) {
+          setUploading(true);
+          uploadMutation.mutate(validFiles);
+        }
+      })
+      .catch(error => {
+        toast({
+          title: 'Error',
+          description: 'Error al procesar los archivos',
+          variant: 'destructive',
+        });
+      });
   }, [uploadMutation, toast]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -91,6 +145,7 @@ export function FileUpload() {
     },
     maxFiles: 100,
     maxSize: 10 * 1024 * 1024, // 10MB
+    multiple: true
   });
 
   const getStatusIcon = (status: string) => {
@@ -150,7 +205,9 @@ export function FileUpload() {
           <p className="text-lg font-medium text-gray-700 mb-2">
             {isDragActive ? 'Suelta los archivos aquí' : 'Arrastra archivos .txt aquí'}
           </p>
-          <p className="text-sm text-gray-500 mb-4">o haz clic para seleccionar archivos</p>
+          <p className="text-sm text-gray-500 mb-4">
+            Los archivos deben contener cuentas en formato email:password
+          </p>
           <Button 
             variant="outline" 
             disabled={uploading}
