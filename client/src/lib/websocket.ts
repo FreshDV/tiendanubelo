@@ -12,35 +12,41 @@ export function useWebSocket(url: string) {
 
   useEffect(() => {
     const connect = () => {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/api/ws`;
-      
-      ws.current = new WebSocket(wsUrl);
+      try {
+        // Create a URL object using the current location as base
+        const wsUrl = new URL('/api/ws', window.location.href);
+        // Update the protocol based on the current page protocol
+        wsUrl.protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        
+        ws.current = new WebSocket(wsUrl.toString());
 
-      ws.current.onopen = () => {
-        setIsConnected(true);
-        console.log('WebSocket connected');
-      };
+        ws.current.onopen = () => {
+          setIsConnected(true);
+          console.log('WebSocket connected');
+        };
 
-      ws.current.onmessage = (event) => {
-        try {
-          const message = JSON.parse(event.data);
-          setLastMessage(message);
-        } catch (error) {
-          console.error('Error parsing WebSocket message:', error);
-        }
-      };
+        ws.current.onmessage = (event) => {
+          try {
+            const message = JSON.parse(event.data);
+            setLastMessage(message);
+          } catch (error) {
+            console.error('Error parsing WebSocket message:', error);
+          }
+        };
 
-      ws.current.onclose = () => {
-        setIsConnected(false);
-        console.log('WebSocket disconnected');
-        // Reconnect after 3 seconds
-        setTimeout(connect, 3000);
-      };
+        ws.current.onclose = () => {
+          setIsConnected(false);
+          console.log('WebSocket disconnected');
+          // Reconnect after 3 seconds
+          setTimeout(connect, 3000);
+        };
 
-      ws.current.onerror = (error) => {
-        console.error('WebSocket error:', error);
-      };
+        ws.current.onerror = (error) => {
+          console.error('WebSocket error:', error);
+        };
+      } catch (error) {
+        console.error('Error creating WebSocket connection:', error);
+      }
     };
 
     connect();
