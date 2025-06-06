@@ -66,7 +66,7 @@ export function FileUpload() {
       rejectedFiles.forEach(file => {
         toast({
           title: 'Archivo no válido',
-          description: 'Solo se permiten archivos .txt de hasta 10MB',
+          description: 'Solo se permiten archivos .txt de hasta 4GB',
           variant: 'destructive',
         });
       });
@@ -102,7 +102,11 @@ export function FileUpload() {
           // Verificar que el archivo tenga al menos una línea con formato válido
           const hasValidLine = content.split('\n').some(line => {
             const trimmedLine = line.trim();
-            return trimmedLine.includes('@') && trimmedLine.includes(':');
+            return trimmedLine.includes('@') && (
+              trimmedLine.includes(':') || 
+              trimmedLine.includes('|') || 
+              trimmedLine.includes(',')
+            );
           });
           resolve({ file, isValid: hasValidLine });
         };
@@ -144,7 +148,7 @@ export function FileUpload() {
       'text/plain': ['.txt']
     },
     maxFiles: 100,
-    maxSize: 10 * 1024 * 1024, // 10MB
+    maxSize: 4 * 1024 * 1024 * 1024, // 4GB
     multiple: true
   });
 
@@ -215,7 +219,7 @@ export function FileUpload() {
           >
             {uploading ? 'Subiendo...' : 'Seleccionar Archivos'}
           </Button>
-          <p className="text-xs text-gray-400">Máximo 100 archivos, 10MB cada uno</p>
+          <p className="text-xs text-gray-400">Máximo 100 archivos, 4GB cada uno</p>
         </div>
 
         {files.length > 0 && (

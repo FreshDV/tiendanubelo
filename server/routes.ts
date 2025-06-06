@@ -4,14 +4,23 @@ import { WebSocketServer } from "ws";
 import multer from "multer";
 import { storage } from "./storage";
 import {
-  insertUploadedFileSchema,
-  insertValidationJobSchema,
-  validationSettingsSchema,
+  uploadedFiles,
+  accounts,
+  validationJobs,
+  activityLogs,
+  type UploadedFile,
+  type InsertUploadedFile,
+  type Account,
+  type InsertAccount,
+  type ValidationJob,
+  type InsertValidationJob,
+  type ActivityLog,
+  type InsertActivityLog,
 } from "@shared/schema";
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+  limits: { fileSize: 4 * 1024 * 1024 * 1024 } // 4GB limit
 });
 
 // WebSocket for real-time updates
