@@ -13,16 +13,15 @@ export function useWebSocket(url: string) {
   useEffect(() => {
     const connect = () => {
       try {
-        // Create a URL object using the current location as base
-        const wsUrl = new URL('/api/ws', window.location.href);
-        // Update the protocol based on the current page protocol
-        wsUrl.protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        // Construir la URL del WebSocket usando el host y protocolo actuales
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/api/ws`;
         
-        ws.current = new WebSocket(wsUrl.toString());
+        ws.current = new WebSocket(wsUrl);
 
         ws.current.onopen = () => {
           setIsConnected(true);
-          console.log('WebSocket connected');
+          console.log('WebSocket conectado');
         };
 
         ws.current.onmessage = (event) => {
@@ -30,22 +29,22 @@ export function useWebSocket(url: string) {
             const message = JSON.parse(event.data);
             setLastMessage(message);
           } catch (error) {
-            console.error('Error parsing WebSocket message:', error);
+            console.error('Error al procesar mensaje del WebSocket:', error);
           }
         };
 
         ws.current.onclose = () => {
           setIsConnected(false);
-          console.log('WebSocket disconnected');
-          // Reconnect after 3 seconds
+          console.log('WebSocket desconectado');
+          // Reconectar después de 3 segundos
           setTimeout(connect, 3000);
         };
 
         ws.current.onerror = (error) => {
-          console.error('WebSocket error:', error);
+          console.error('Error en el WebSocket:', error);
         };
       } catch (error) {
-        console.error('Error creating WebSocket connection:', error);
+        console.error('Error al crear la conexión WebSocket:', error);
       }
     };
 
